@@ -15,7 +15,7 @@ firebase_admin.initialize_app(cred , {
 }) 
 
 
-# event_id=int(input("Enter the EventId : "))
+Event_name=input("Enter the EventId : ")
 counter_down=[]
 counter_up=[]
 start_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -30,6 +30,7 @@ ref=db.reference('EventsRecord')
 data={
     f"Event_{start_time}":
     {
+        "EventName" : Event_name ,
         "PersonEntered" : len(counter_down),
         "PersonExit" : len(counter_up) ,
         "StartTime" :   start_time ,
