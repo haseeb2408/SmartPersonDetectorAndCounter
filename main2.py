@@ -2,10 +2,50 @@ import cv2
 import pandas as pd
 from ultralytics import YOLO
 from tracker import*
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db
+from datetime import datetime
+
+
+
+cred = credentials.Certificate("smartperson.json")
+firebase_admin.initialize_app(cred , {
+    'databaseURL' : 'https://smartpersondetectorandcounter-default-rtdb.firebaseio.com/'
+}) 
+
+
+# event_id=int(input("Enter the EventId : "))
+counter_down=[]
+counter_up=[]
+start_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+end_time=""
+# datetimeobject=datetime.strptime(datetime.now(),
+# 								   "%Y-%m-%d %H:%M:%S")
+# print(datetimeobject)
+
+ref=db.reference('EventsRecord')
+
+
+data={
+    f"Event_{start_time}":
+    {
+        "PersonEntered" : len(counter_down),
+        "PersonExit" : len(counter_up) ,
+        "StartTime" :   start_time ,
+        "EndTime" : "In Progress....."
+    }
+}
+
+for key, value in data.items():
+    ref.child(key).set(value)
+
+
+
+
+
 
 model=YOLO('yolov8s.pt')
-
-
 
 def RGB(event, x, y, flags, param):
     if event == cv2.EVENT_MOUSEMOVE :  
@@ -15,6 +55,11 @@ def RGB(event, x, y, flags, param):
 
 cv2.namedWindow('RGB')
 cv2.setMouseCallback('RGB', RGB)
+
+
+
+
+
 
 cap=cv2.VideoCapture('people.mp4')
 
@@ -33,12 +78,16 @@ cy2=220
 offset=6
 p_down={}
 p_up={} 
-counter_down=[]
-counter_up=[]
+
+ref2=db.reference(f"EventsRecord/Event_{start_time}")
+
 while True:    
     ret,frame = cap.read()
     if not ret:
+        end_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ref2.child("EndTime").set(end_time)
         break
+        
     count += 1
     if count % 3 != 0:
         continue
@@ -92,12 +141,14 @@ while True:
     #cv2.putText(frame,"Second Line",(110,cy2-6),cv2.FONT_HERSHEY_SIMPLEX,0.8,(220,255,0),2)
     d=len(counter_down)
     cv2.putText(frame,f"Going_down:-{d}",(60,80),cv2.FONT_HERSHEY_SIMPLEX,0.8,(220,255,0),2)
-    
+    ref2.child('PersonEntered').set(len(counter_down))
     u=len(counter_up)
     cv2.putText(frame,f"Going_Up:-{u}",(60,40),cv2.FONT_HERSHEY_COMPLEX,0.8,(220,255,0),2)
-    
+    ref2.child('PersonExit').set(len(counter_up))
     cv2.imshow("RGB", frame)
-    if cv2.waitKey(0)&0xFF==ord('d'):
+    if cv2.waitKey(1)&0xFF==ord('d'):
+        end_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ref2.child('EndTime').set(end_time)
         break
 cap.release()
 cv2.destroyAllWindows()
